@@ -17,7 +17,7 @@ class Product(models.Model):
     name = models.CharField(max_length=200, verbose_name='Название продукта')
     description = models.TextField(verbose_name='Описание продукта')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='Продукты')
-    image = models.ImageField(upload_to='images/', verbose_name='Изображение')
+    image = models.ImageField(upload_to='Django_project_1/image/', verbose_name='Изображение')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
     created_at = models.DateField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateField(auto_now=True, verbose_name='Дата изменения')
