@@ -1,10 +1,10 @@
-{% extends 'base.html' %}
+{% extends 'catalog/base.html' %}
 {% load my_tags %}
 {% block content %}
 <div class="album py-5 bg-body-tertiary">
   <div class="container">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-      {% for prod in products %}
+      {% for prod in object_list %}
       <div class="col">
         <div class="card shadow-sm">
           <img src="{{ prod.image | media_filter }}" class="img-thumbnail div-fixed-size">
@@ -12,9 +12,14 @@
             <p class="card-text text-center">{{ prod.name }}</p>
             <p class="card-text text-center">{{ prod.description|truncatechars:100 }}</p>
             <div class="d-flex justify-content-between align-items-center">
-              <div class="btn-group">
+              <div class="btn-group text-center">
                 <a class="btn btn-primary" href="{% url 'catalog:product_detail' prod.pk %}"
                    role="button">Посмотреть</a>
+                <a class="btn btn-primary" href="{% url 'catalog:product_update' prod.pk %}"
+                   role="button">Редактировать</a>
+                <a class="btn btn-primary" href="{% url 'catalog:product_delete' prod.pk %}"
+                   role="button">Удалить</a>
+
               </div>
             </div>
           </div>
