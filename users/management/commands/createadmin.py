@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
+
 class Command(BaseCommand):
     help = "Создание нового пользователя с ролью 'admin'"
 
@@ -8,7 +9,6 @@ class Command(BaseCommand):
         User = get_user_model()
 
         user = User.objects.create(
-            username='admin2',
             email='admin@mail.ru',
             first_name='Admin',
             last_name='AdminV',

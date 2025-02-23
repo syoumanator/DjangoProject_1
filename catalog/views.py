@@ -1,5 +1,5 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseForbidden
 from catalog.models import Product
 
 from django.views.generic import ListView, DetailView, TemplateView
@@ -7,7 +7,7 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from django.urls import reverse_lazy, reverse
 
-from .forms import ProductForm
+from .forms import ProductForm, ProductModeratorForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 
@@ -34,9 +34,9 @@ class ProductListView(ListView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.has_perm('catalog.can_publish_product'):
+        if user.has_perm('catalog.can_unpublish_product'):
             return Product.objects.all()
-        return Product.objects.filter(is_publish=True)
+        return Product.objects.filter(is_published=True)
 
 
 class ProductDetailView(DetailView):
@@ -61,9 +61,24 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
     form_class = ProductForm
     success_url = reverse_lazy('catalog:catalog_list')
 
+    def get_form_class(self):
+        user = self.request.user
+        if user == self.object.owner:
+            return ProductForm
+        elif user.has_perm('catalog.can_unpublish_product'):
+            return ProductModeratorForm
+
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product
     template_name = 'catalog/product_confirm_delete.html'
     success_url = reverse_lazy('catalog:catalog_list')
     context_object_name = 'product'
+
+    def post(self, request, pk):
+        product = get_object_or_404(Product, id=pk)
+        if request.user == product.owner or request.user.has_perm('catalog.delete_product'):
+            product.delete()
+            return redirect(reverse('catalog:catalog_list'))
+        else:
+            return HttpResponseForbidden("У вас недостаточно прав для удаления этого товара.")
