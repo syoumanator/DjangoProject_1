@@ -1,11 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from catalog.models import Product
 
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 
 from .forms import ProductForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -30,6 +30,13 @@ class ContactDetailView(TemplateView):
 
 class ProductListView(ListView):
     model = Product
+    context_object_name = 'products'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.has_perm('catalog.can_publish_product'):
+            return Product.objects.all()
+        return Product.objects.filter(is_publish=True)
 
 
 class ProductDetailView(DetailView):
@@ -41,6 +48,12 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     form_class = ProductForm
     template_name = 'catalog/product_form.html'
     success_url = reverse_lazy('catalog:catalog_list')
+
+    def form_valid(self, form):
+        product = form.save(commit=False)
+        product.owner = self.request.user
+        product.save()
+        return redirect(reverse('catalog:catalog_list'))
 
 
 class ProductUpdateView(LoginRequiredMixin, UpdateView):
