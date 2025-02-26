@@ -1,7 +1,10 @@
 from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseForbidden
-from catalog.models import Product
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
+from catalog.models import Product, Category
 
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
@@ -10,6 +13,25 @@ from django.urls import reverse_lazy, reverse
 
 from .forms import ProductForm, ProductModeratorForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+
+from .services import CategoryService
+
+
+class CategoryListView(ListView):
+    model = Category
+    template_name = "catalog/categories_list.html"
+    context_object_name = "categories"
+
+
+class CategoryDetailView(DetailView):
+    model = Category
+    template_name = "catalog/category_detail.html"
+    context_object_name = "category"
+
+    def get_context_data(self, **kwargs):
+        products = CategoryService.get_products_from_category(category=self.object)
+        categories = CategoryService.get_all_categories()
+        return super().get_context_data(products=products, categories=categories, **kwargs)
 
 
 class ContactDetailView(TemplateView):
@@ -45,6 +67,7 @@ class ProductListView(ListView):
         return Product.objects.filter(is_published=True)
 
 
+@method_decorator(cache_page(60 * 5), name='dispatch')
 class ProductDetailView(DetailView):
     model = Product
 
