@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-
 load_dotenv(override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -120,12 +119,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHE_ENABLED = os.getenv('CACHE_ENABLED')
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.getenv('LOCATION'),
+if CACHE_ENABLED:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('LOCATION'),
+        }
     }
-}
 
 AUTH_USER_MODEL = 'users.CustomUser'
 

@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseForbidden
 from catalog.models import Product
@@ -33,6 +34,11 @@ class ProductListView(ListView):
     context_object_name = 'products'
 
     def get_queryset(self):
+        cached_products = cache.get("products")
+        if cached_products:
+            return cached_products
+        products = Product.objects.all()
+        cache.set("products", products, 60 * 5)
         user = self.request.user
         if user.has_perm('catalog.can_unpublish_product'):
             return Product.objects.all()
