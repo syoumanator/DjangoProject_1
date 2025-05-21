@@ -19,8 +19,8 @@
       </div>
       <div class="col">
         <h1 class="text-center">{{ object.name }}</h1>
-                <h5>Категория: Мужская {{ object.category|lower }}</h5>
-        <p >Описание: {{ object.description}}</p>
+                <h5>Категория: {{ object.category|lower }}</h5>
+        <p >Описание: {{ object.description }}</p>
                         <a class="btn btn-primary" href="{% url 'catalog:catalog_list' %}"
                    role="button">Вернуться</a>
       </div>

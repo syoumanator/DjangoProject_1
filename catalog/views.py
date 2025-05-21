@@ -1,50 +1,113 @@
-from django.shortcuts import render
-from django.http import HttpResponse
-from catalog.models import Product
+from django.core.cache import cache
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
+from catalog.models import Product, Category
 
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
+
+from .forms import ProductForm, ProductModeratorForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from .services import CategoryService
+
+
+class CategoryListView(ListView):
+    model = Category
+    template_name = "catalog/categories_list.html"
+    context_object_name = "categories"
+
+
+class CategoryDetailView(DetailView):
+    model = Category
+    template_name = "catalog/category_detail.html"
+    context_object_name = "category"
+
+    def get_context_data(self, **kwargs):
+        products = CategoryService.get_products_from_category(category=self.object)
+        categories = CategoryService.get_all_categories()
+        return super().get_context_data(products=products, categories=categories, **kwargs)
 
 
 class ContactDetailView(TemplateView):
     template_name = "catalog/contacts.html"
 
 
-def contact(request):
-    if request.method == 'POST':
-        # Получение данных из формы
-        name = request.POST.get('name')
-        message = request.POST.get('message')
-        # Обработка данных (например, сохранение в БД, отправка email и т. д.)
-        print(name)
-        print(message)
-        # Здесь мы просто возвращаем простой ответ
-        return HttpResponse(f"Спасибо, {name}! Ваше сообщение получено.")
-    return render(request, 'contact.html')
+# def contact(request):
+#     if request.method == 'POST':
+#         # Получение данных из формы
+#         name = request.POST.get('name')
+#         message = request.POST.get('message')
+#         # Обработка данных (например, сохранение в БД, отправка email и т. д.)
+#         print(name)
+#         print(message)
+#         # Здесь мы просто возвращаем простой ответ
+#         return HttpResponse(f"Спасибо, {name}! Ваше сообщение получено.")
+#     return render(request, 'contact.html')
 
 
 class ProductListView(ListView):
     model = Product
+    context_object_name = 'products'
+
+    def get_queryset(self):
+        cached_products = cache.get("products")
+        if cached_products:
+            return cached_products
+        products = Product.objects.all()
+        cache.set("products", products, 60 * 5)
+        user = self.request.user
+        if user.has_perm('catalog.can_unpublish_product'):
+            return Product.objects.all()
+        return Product.objects.filter(is_published=True)
 
 
+@method_decorator(cache_page(60 * 5), name='dispatch')
 class ProductDetailView(DetailView):
     model = Product
 
 
-class ProductCreateView(CreateView):
+class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product
-    fields = ('name', 'description', 'category', 'image', 'price')
+    form_class = ProductForm
+    template_name = 'catalog/product_form.html'
     success_url = reverse_lazy('catalog:catalog_list')
 
+    def form_valid(self, form):
+        product = form.save(commit=False)
+        product.owner = self.request.user
+        product.save()
+        return redirect(reverse('catalog:catalog_list'))
 
-class ProductUpdateView(UpdateView):
+
+class ProductUpdateView(LoginRequiredMixin, UpdateView):
     model = Product
-    fields = ('name', 'description', 'category', 'image', 'price')
+    form_class = ProductForm
     success_url = reverse_lazy('catalog:catalog_list')
 
+    def get_form_class(self):
+        user = self.request.user
+        if user == self.object.owner:
+            return ProductForm
+        elif user.has_perm('catalog.can_unpublish_product'):
+            return ProductModeratorForm
 
-class ProductDeleteView(DeleteView):
+
+class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product
+    template_name = 'catalog/product_confirm_delete.html'
     success_url = reverse_lazy('catalog:catalog_list')
+    context_object_name = 'product'
+
+    def post(self, request, pk):
+        product = get_object_or_404(Product, id=pk)
+        if request.user == product.owner or request.user.has_perm('catalog.delete_product'):
+            product.delete()
+            return redirect(reverse('catalog:catalog_list'))
+        else:
+            return HttpResponseForbidden("У вас недостаточно прав для удаления этого товара.")

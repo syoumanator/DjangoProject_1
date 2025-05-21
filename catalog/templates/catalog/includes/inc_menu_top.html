@@ -2,7 +2,24 @@
     <h5 class="my-0 mr-md-auto font-weight-normal">Skystore</h5>
     <nav class="ms-5">
         <a class="p-2 btn btn-outline-primary" href="{% url 'catalog:catalog_list' %}" role="button">Каталог</a>
+        <a class="p-2 btn btn-outline-primary" href="{% url 'catalog:categories' %}">Категории</a>
         <a class="p-2 btn btn-outline-primary" href="{% url 'catalog:contacts' %}">Контакты</a>
+        {% if user.is_authenticated %}
         <a class="p-2 btn btn-outline-primary" href="{% url 'catalog:product_create' %}" role="button">Добавить товар</a>
+        {% endif %}
+
     </nav>
+    <nav class="ms-5">
+        <h4>Навигация</h4>
+        {% if user.is_authenticated %}
+                <form method="post" action="{% url 'users:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="p-2 btn btn-outline-primary">Выйти</button>
+                </form>
+        {% else %}
+            <a class="p-2 btn btn-outline-primary" href="{% url 'users:register' %}" role="button">Регистрация</a>
+            <a class="p-2 btn btn-outline-primary" href="{% url 'users:login' %}" role="button">Войти</a>
+        {% endif %}
+    </nav>
+
 </div>

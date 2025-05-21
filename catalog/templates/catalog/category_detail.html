@@ -1,10 +1,16 @@
 {% extends 'catalog/base.html' %}
 {% load my_tags %}
+
+{% block title %}Список продуктов в категории{% endblock %}
+
 {% block content %}
-<div class="album py-5 bg-body-tertiary">
+<h1 class="display-4 text-center">{{ category.name }}
+<a href="{% url 'catalog:categories' %}" class="btn btn-outline-secondary"> <<< К списку категорий</a>
+</h1>
+<<div class="album py-5 bg-body-tertiary">
   <div class="container">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-      {% for prod in object_list %}
+      {% for prod in products %}
       <div class="col">
         <div class="card shadow-sm">
           <img src="{{ prod.image | media_filter }}" class="img-thumbnail div-fixed-size">
